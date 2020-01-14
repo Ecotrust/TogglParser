@@ -52,10 +52,10 @@ class Command(BaseCommand):
                     line_count += 1
                 else:
                     proj = parse_client(row["Client"])
-                    if not proj["name"] in hours:
-                        hours[proj["name"]] = {}
-                    if not proj["code"] in hours[proj["name"]]:
-                        hours[proj["name"]][proj["code"]] = {}
+                    if not proj["code"] in hours:
+                        hours[proj["code"]] = {}
+                    if not proj["name"] in hours[proj["code"]]:
+                        hours[proj["code"]][proj["name"]] = {}
                     if row["Task"]:
                         row_task = row["Task"]
                     else:
@@ -63,14 +63,14 @@ class Command(BaseCommand):
                     if row_task == "":
                         row_task = DEFAULT_PROJECT_TASK
 
-                    if not row_task in hours[proj["name"]][proj["code"]]:
-                        hours[proj["name"]][proj["code"]][row_task] = {}
-                    if not row["Start date"] in hours[proj["name"]][proj["code"]][row_task]:
-                        hours[proj["name"]][proj["code"]][row_task][row["Start date"]] = 0
+                    if not row_task in hours[proj["code"]][proj["name"]]:
+                        hours[proj["code"]][proj["name"]][row_task] = {}
+                    if not row["Start date"] in hours[proj["code"]][proj["name"]][row_task]:
+                        hours[proj["code"]][proj["name"]][row_task][row["Start date"]] = 0
                     if not row["Start date"] in dates:
                         dates.append(row["Start date"])
 
-                    hours[proj["name"]][proj["code"]][row_task][row["Start date"]] += get_seconds(row["Duration"])
+                    hours[proj["code"]][proj["name"]][row_task][row["Start date"]] += get_seconds(row["Duration"])
 
         out_csv = options['out_csv']
         if not out_csv:
@@ -96,8 +96,8 @@ class Command(BaseCommand):
         dates.sort()
 
         day_totals_row = {
-            'Project': 'Total',
-            'Code': '-------',
+            'Code': 'Total',
+            'Project': '-------',
             'Task': '-------',
         }
 
@@ -105,19 +105,19 @@ class Command(BaseCommand):
             day_totals_row[day] = 0
 
         with open(out_csv, mode="w") as csv_file:
-            fieldnames = ['Project', 'Code', 'Task'] + dates + ['Total']
+            fieldnames = ['Code', 'Project', 'Task'] + dates + ['Total']
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
             writer.writeheader()
             projects = hours.keys()
-            for proj_key in sorted(projects):
-                proj_key_text = proj_key
-                proj_total = 0
-                codes = hours[proj_key].keys()
-                for proj_code in sorted(codes):
-                    proj_code_text = proj_code
-                    code_total = 0
-                    tasks = hours[proj_key][proj_code].keys()
+            for proj_code in sorted(projects):
+                proj_code_text = proj_code
+                code_total = 0
+                projects = hours[proj_code].keys()
+                for proj_key in sorted(projects):
+                    proj_key_text = proj_key
+                    proj_total = 0
+                    tasks = hours[proj_code][proj_key].keys()
                     for proj_task in sorted(tasks):
                         row_dict = {
                             'Project': str(proj_key_text),
@@ -126,11 +126,11 @@ class Command(BaseCommand):
                         }
                         task_total = 0
                         for date_key in dates:
-                            if date_key in hours[proj_key][proj_code][proj_task]:
-                                row_dict[date_key] = get_hours_from_seconds(hours[proj_key][proj_code][proj_task][date_key])
+                            if date_key in hours[proj_code][proj_key][proj_task]:
+                                row_dict[date_key] = get_hours_from_seconds(hours[proj_code][proj_key][proj_task][date_key])
                                 task_total += row_dict[date_key]
                                 day_totals_row[date_key] += row_dict[date_key]
-                        row_dict['Total'] = task_total
+                        row_dict['Total'] = round(task_total,1)
                         writer.writerow(row_dict)
                         proj_key_text = ""
                         proj_code_text = ""
@@ -138,6 +138,7 @@ class Command(BaseCommand):
                     proj_total += code_total
             weekly_total = 0
             for day in dates:
+                day_totals_row[day] = round(day_totals_row[day], 1)
                 weekly_total += day_totals_row[day]
-            day_totals_row['Total'] = weekly_total
+            day_totals_row['Total'] = round(weekly_total,1)
             writer.writerow(day_totals_row)
