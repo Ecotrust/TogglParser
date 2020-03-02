@@ -13,6 +13,7 @@ class Command(BaseCommand):
         import sys, csv#, xlrd
         hours = {}
         headers = []
+        DEBUG = False
 
         def parse_client(client):
             # TODO: Set this in project settings
@@ -45,32 +46,36 @@ class Command(BaseCommand):
 
         with open(in_csv, mode='r') as csv_file:
             csv_reader = csv.DictReader(csv_file)
-            line_count = 0
+            # line_count = 0
             dates = []
             for row in csv_reader:
-                if line_count == 0:
-                    line_count += 1
+                # if line_count == 0:
+                #     line_count += 1
+                # else:
+                proj = parse_client(row["Client"])
+                if not proj["code"] in hours:
+                    hours[proj["code"]] = {}
+                if not proj["name"] in hours[proj["code"]]:
+                    hours[proj["code"]][proj["name"]] = {}
+                if row["Task"]:
+                    row_task = row["Task"]
                 else:
-                    proj = parse_client(row["Client"])
-                    if not proj["code"] in hours:
-                        hours[proj["code"]] = {}
-                    if not proj["name"] in hours[proj["code"]]:
-                        hours[proj["code"]][proj["name"]] = {}
-                    if row["Task"]:
-                        row_task = row["Task"]
-                    else:
-                        row_task = DEFAULT_PROJECT_TASK
-                    if row_task == "":
-                        row_task = DEFAULT_PROJECT_TASK
+                    row_task = DEFAULT_PROJECT_TASK
+                if row_task == "":
+                    row_task = DEFAULT_PROJECT_TASK
 
-                    if not row_task in hours[proj["code"]][proj["name"]]:
-                        hours[proj["code"]][proj["name"]][row_task] = {}
-                    if not row["Start date"] in hours[proj["code"]][proj["name"]][row_task]:
-                        hours[proj["code"]][proj["name"]][row_task][row["Start date"]] = 0
-                    if not row["Start date"] in dates:
-                        dates.append(row["Start date"])
+                if not row_task in hours[proj["code"]][proj["name"]]:
+                    hours[proj["code"]][proj["name"]][row_task] = {}
+                if not row["Start date"] in hours[proj["code"]][proj["name"]][row_task]:
+                    hours[proj["code"]][proj["name"]][row_task][row["Start date"]] = 0
+                if not row["Start date"] in dates:
+                    dates.append(row["Start date"])
 
-                    hours[proj["code"]][proj["name"]][row_task][row["Start date"]] += get_seconds(row["Duration"])
+                if DEBUG:
+                    print("Adding %f: for %s" % (get_hours_from_seconds(get_seconds(row["Duration"])), proj["code"]))
+                hours[proj["code"]][proj["name"]][row_task][row["Start date"]] += get_seconds(row["Duration"])
+                if DEBUG:
+                    print("     total: %f" % (get_hours_from_seconds(hours[proj["code"]][proj["name"]][row_task][row["Start date"]])))
 
         out_csv = options['out_csv']
         if not out_csv:
