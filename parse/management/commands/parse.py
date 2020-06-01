@@ -20,6 +20,7 @@ class Command(BaseCommand):
             # TODO 2: Set these with user input from web form (non KS users)
             DEFAULT_PROJECT_NAME = "Home"
             DEFUALT_PROJECT_CODE = "1-3000-000-0"
+            DEFAULT_TASK_CODE = "00-00-000"
 
             proj_name = ' '.join(client.split(' ')[:-1])
             proj_code = client.split(' ')[-1]
@@ -27,7 +28,13 @@ class Command(BaseCommand):
                 proj_name = DEFAULT_PROJECT_NAME
             if proj_code == "":
                 proj_code = DEFUALT_PROJECT_CODE
-            return { 'name': proj_name, 'code': proj_code}
+                task_code = DEFAULT_TASK_CODE
+            elif ":" in proj_code:
+                [proj_code, task_code] = proj_code.split(':')
+            else:
+                task_code = DEFAULT_TASK_CODE
+
+            return { 'name': proj_name, 'code': proj_code, 'task': task_code}
 
         def get_seconds(duration):
             h, m, s = duration.split(":")
@@ -57,10 +64,15 @@ class Command(BaseCommand):
                     hours[proj["code"]] = {}
                 if not proj["name"] in hours[proj["code"]]:
                     hours[proj["code"]][proj["name"]] = {}
-                if row["Task"]:
+                # Support pro account with task tracking
+                if row["Task"] and not row["Task"] == "":
                     row_task = row["Task"]
                 else:
-                    row_task = DEFAULT_PROJECT_TASK
+                    #Support free account with task embedded into "client" str
+                    if 'task' in proj.keys():
+                        row_task = proj['task']
+                    else:
+                        row_task = DEFAULT_PROJECT_TASK
                 if row_task == "":
                     row_task = DEFAULT_PROJECT_TASK
 
