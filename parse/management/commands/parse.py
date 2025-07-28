@@ -46,7 +46,7 @@ class Command(BaseCommand):
         # TODO: Set this in project settings
         # TODO 2: Set these with user input from web form (non KS users)
         DEFAULT_PROJECT_NAME = "Home"
-        DEFUALT_PROJECT_CODE = "1-3000-000-0"
+        DEFUALT_PROJECT_CODE = "1-1000-000-0"
         DEFAULT_PROJECT_TASK = "00-00-000"
 
         in_csv = options['in_csv']
@@ -65,7 +65,7 @@ class Command(BaseCommand):
                 if not proj["name"] in hours[proj["code"]]:
                     hours[proj["code"]][proj["name"]] = {}
                 # Support pro account with task tracking
-                if row["Task"] and not row["Task"] == "":
+                if "Task" in row.keys() and row["Task"] and not row["Task"] == "":
                     row_task = row["Task"]
                 else:
                     #Support free account with task embedded into "client" str
